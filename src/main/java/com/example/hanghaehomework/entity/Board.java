@@ -27,6 +27,8 @@ public class Board extends Timestamped {
     private String title;
     @Column(nullable = false)
     private String contents;
+    @Column(nullable = false)
+    private int likes;
     @OneToMany(mappedBy = "board", cascade = CascadeType.REMOVE)
     @OrderBy("createdAt DESC")
     private List<Comment> commentList = new ArrayList<>();
@@ -60,5 +62,9 @@ public class Board extends Timestamped {
 //        this.member = requestDto.getMember();
         this.title = requestDto.getTitle();
         this.contents = requestDto.getContents();
+    }
+
+    public void updateLikes(boolean addOrNot){
+        this.likes = addOrNot? this.likes+1 : this.likes -1;
     }
 }

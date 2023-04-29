@@ -6,6 +6,7 @@ import com.example.hanghaehomework.dto.BoardResponseDto;
 import com.example.hanghaehomework.security.MemberDetailsImpl;
 import com.example.hanghaehomework.service.BoardService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,5 +48,10 @@ public class BoardController {
     @DeleteMapping("/post/{id}")
     public String deleteBoard(@PathVariable Long id, HttpServletRequest request, @AuthenticationPrincipal MemberDetailsImpl memberDetails){
         return boardService.deleteBoard(id, request, memberDetails.getUser());
+    }
+
+    @PutMapping("/likes/{id}")
+    public BoardResponseDto updateLikes(@PathVariable Long id, @AuthenticationPrincipal MemberDetailsImpl memberDetails){
+        return boardService.updateLikes(id, memberDetails.getUser());
     }
 }

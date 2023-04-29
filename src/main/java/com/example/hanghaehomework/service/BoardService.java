@@ -1,15 +1,20 @@
 package com.example.hanghaehomework.service;
 
+
 import com.example.hanghaehomework.dto.BoardRequestDto;
 import com.example.hanghaehomework.dto.BoardResponseDto;
 import com.example.hanghaehomework.entity.Board;
+import com.example.hanghaehomework.entity.BoardLikes;
 import com.example.hanghaehomework.entity.Member;
 import com.example.hanghaehomework.entity.UserRoleEnum;
 import com.example.hanghaehomework.jwt.JwtUtil;
+import com.example.hanghaehomework.repository.BoardLikesRepository;
 import com.example.hanghaehomework.repository.BoardRepository;
 import com.example.hanghaehomework.repository.MemberRepository;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +29,7 @@ import java.util.stream.Collectors;
 public class BoardService {
     public final BoardRepository boardRepository ;
     private final MemberRepository memberRepository;
+    private final BoardLikesRepository boardLikesRepository;
     private final JwtUtil jwtUtil;
 
 
@@ -89,22 +95,35 @@ public class BoardService {
         return "게시글 삭제 성공.";
     }
 
-//    public Member checkJwtToken(HttpServletRequest request){
-//        String token = jwtUtil.resolveToken(request);
-//        Claims claims;
-//        if(token != null){
-//            if(jwtUtil.validateToken(token)){
-//                claims = jwtUtil.getUserInfoFromToken(token);
-//            }else{
-//                throw new IllegalArgumentException("Token Error");
-//            }
-//
-//            Member member = memberRepository.findByUsername(claims.getSubject()).orElseThrow(
-//                    () -> new IllegalArgumentException("사용자가 존재하지 않습니다")
-//            );
-//            return member;
-//        }else {
-//            return null;
-//        }
-//    }
+    @Transactional
+    public BoardResponseDto updateLikes(Long id, Member member) {
+        // 게시글 존재 여부 확인
+        Board board = validatePost(id);
+
+        // 게시글에 현재 유저의 좋아요 유무 확인
+        if (boardLikesRepository.existsByBoardIdAndMemberId(id, member.getId())){
+            BoardLikes boardLikes = boardLikesRepository.findByBoardIdAndMemberId(id, member.getId());
+            boardLikesRepository.delete(boardLikes);
+            board.updateLikes(false);
+        } else { // 현재 유저의 좋아요 흔적 없음 -> 좋아요
+            boardLikesRepository.save(new BoardLikes(board, member));
+            board.updateLikes(true);
+        }
+        return new BoardResponseDto(board);
+    }
+
+    //게시글 존재 여부 확인
+    private Board validatePost(Long id) {
+        return boardRepository.findById(id).orElseThrow(
+                () -> new IllegalArgumentException("게시글이 존재하지 않습니다.")
+        );
+    }
+
+    //작성자 일치 여부 판단
+    private void isPostAuthor(Member member, Board board) {
+        if (!board.getMember().getUsername().equals(member.getUsername())) {
+            if (member.isAdmin()) return;
+            throw new IllegalArgumentException("작성자가 일치하지 않습니다");
+        }
+    }
 }
